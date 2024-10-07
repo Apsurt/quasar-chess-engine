@@ -1,0 +1,10 @@
+[package]
+name = "quasar-chess-engine"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "quasar"
+
+[dependencies]
+glam = "0.29.0"

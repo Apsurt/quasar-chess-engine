@@ -31,7 +31,7 @@ fn test_capture() {
 }
 
 #[test]
-fn tet_moved() {
+fn test_moved() {
     let mut piece = Piece::new(PieceColor::WHITE, PieceType::PAWN, Vec2::ZERO);
     assert_eq!(piece.has_moved(), false);
     piece.moved();

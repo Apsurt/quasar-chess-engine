@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/cache@v4.1.1
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose

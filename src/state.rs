@@ -1,7 +1,7 @@
 use core::fmt;
 use std::usize;
 
-use crate::{moves::Move, pieces::{name_to_type, symbol_to_name, Piece, PieceColor, PieceType}};
+use crate::{moves::Move, pieces::{name_to_type, symbol_to_name, Piece, PieceColor, PieceType}, config::Config};
 use glam::IVec2 as Vec2;
 
 #[derive(Debug, Clone)]
@@ -10,7 +10,7 @@ pub struct State {
     pub to_move: PieceColor,
     pub half_moves: usize,
     pub full_moves: usize,
-    pub promotion_ranks: Vec<i32>
+    pub config: Config,
 }
 
 impl State {
@@ -47,9 +47,11 @@ impl State {
         let to_move = PieceColor::WHITE;
         let half_moves = 0;
         let full_moves = 0;
-        let promotion_ranks = vec![1,8];
+        let promotion_lines = vec![1,8];
+        let boundaries = [Vec2::new(0, 9), Vec2::new(9, 0)];
+        let config = Config::new(boundaries, promotion_lines);
         
-        State { pieces, to_move, half_moves, full_moves, promotion_ranks }
+        State { pieces, to_move, half_moves, full_moves, config }
     }
     
     pub fn get_piece_at(&self, pos: Vec2) -> Option<&Piece> {
@@ -101,9 +103,9 @@ impl State {
             PieceColor::WHITE => 1,
             PieceColor::BLACK => 0,
         };
-        let promotion_ranks = self.promotion_ranks;
+        let config = self.config;
         
-        let mut state = State { pieces, to_move, half_moves, full_moves, promotion_ranks };
+        let mut state = State { pieces, to_move, half_moves, full_moves, config };
         
         //todo edge cases (en passant, castling etc)
         let idx = state.find_piece_idx(mov.piece).expect("Piece does not exist.");

@@ -286,7 +286,7 @@ impl Generator {
         }
         
         // check if promotion available
-        if !self.state.promotion_ranks.contains(&offset_move.end.y) {
+        if !self.state.config.promotion_lines.contains(&offset_move.end.y) {
             if !offset_move.promotion.is_none() {
                 return false;
             }

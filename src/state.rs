@@ -4,7 +4,7 @@ use std::usize;
 use crate::{moves::Move, pieces::{name_to_type, symbol_to_name, Piece, PieceColor, PieceType}};
 use glam::IVec2 as Vec2;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct State {
     pieces: Vec<Piece>,
     pub to_move: PieceColor,

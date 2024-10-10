@@ -1,7 +1,7 @@
 use glam::IVec2 as Vec2;
 use core::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum PieceColor {
     BLACK,
     WHITE

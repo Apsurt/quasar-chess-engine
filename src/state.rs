@@ -11,6 +11,7 @@ pub struct State {
     pub half_moves: usize,
     pub full_moves: usize,
     pub config: Config,
+    pub previous_move: Option<Move>
 }
 
 impl State {
@@ -51,7 +52,11 @@ impl State {
         let boundaries = [Vec2::new(0, 9), Vec2::new(9, 0)];
         let config = Config::new(boundaries, promotion_lines);
         
-        State { pieces, to_move, half_moves, full_moves, config }
+        State { pieces, to_move, half_moves, full_moves, config, previous_move: None }
+    }
+    
+    pub fn get_pieces(&self) -> Vec<Piece> {
+        return self.pieces.clone();
     }
     
     pub fn get_piece_at(&self, pos: Vec2) -> Option<&Piece> {
@@ -95,7 +100,7 @@ impl State {
         }
     }
     
-    pub fn make_move(self, mov: Move) -> State {
+    pub fn make_move(self, next_move: Move) -> State {
         let pieces = self.pieces.clone();
         let to_move: PieceColor = self.switch_to_move();
         let half_moves: usize = self.half_moves + 1;
@@ -104,15 +109,22 @@ impl State {
             PieceColor::BLACK => 0,
         };
         let config = self.config;
+        let previous_move = Some(next_move.clone());
         
-        let mut state = State { pieces, to_move, half_moves, full_moves, config };
+        let mut state = State { pieces, to_move, half_moves, full_moves, config, previous_move};
         
-        //todo edge cases (en passant, castling etc)
-        let idx = state.find_piece_idx(mov.piece).expect("Piece does not exist.");
-        state.pieces[idx].set_position(mov.end);
-        
-        let idx = state.find_piece_idx(mov.target.unwrap()).expect("Target doesn't exist");
-        state.pieces[idx].capture();
+        if !next_move.castling {
+            let idx = state.find_piece_idx(next_move.piece).expect("Piece does not exist.");
+            state.pieces[idx].set_position(next_move.end);
+            
+            if !next_move.target.is_none() {
+                let idx = state.find_piece_idx(next_move.target.unwrap()).unwrap();
+                state.pieces[idx].capture();
+            }
+        }
+        if next_move.castling {
+            todo!()
+        }
 
         state
     }

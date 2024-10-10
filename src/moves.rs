@@ -4,7 +4,7 @@ use glam::IVec2 as Vec2;
 use crate::pieces::{Piece, PieceColor, PieceType};
 use crate::state::State;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Move {
     pub start: Vec2,
     pub end: Vec2,
@@ -81,6 +81,27 @@ impl Generator {
         Generator { n, buffer, piece, state, offsets }
     }
     
+    pub fn is_depleated(&self) -> bool {
+        let min_n = self.n.iter().min().unwrap().clone();
+        if min_n == usize::MAX {
+            true
+        }
+        else {
+            false
+        }
+    }
+    
+    fn is_in_bounds(&self, point: Vec2) -> bool {
+        let top_left = self.state.config.boundaries[0];
+        let bottom_right = self.state.config.boundaries[1];
+        if (point.x < bottom_right.x) && (point.x > top_left.x) {
+            if (point.y > bottom_right.y) && (point.y < top_left.y) {
+                return true;
+            }
+        }
+        false
+    }
+    
     fn next_pawn_offset(&mut self) -> Option<Move> {
         if self.buffer.len() > 0 {
             return self.buffer.pop();
@@ -112,6 +133,10 @@ impl Generator {
             for mul in mul_iter {
                 let start = self.piece.get_position().clone();
                 let end = self.piece.get_position().clone() + (offsets[idx] * mul);
+                if !self.is_in_bounds(end) {
+                    self.n[idx] = usize::MAX;
+                    continue;
+                }
                 for promotion in promotions.iter() {
                     for en_passant in [true, false].iter() {
                         self.buffer.push(
@@ -121,7 +146,7 @@ impl Generator {
                 }
             }
             
-            self.n[idx] += 1;
+            self.n[idx] = usize::MAX;
             break;
         }
         
@@ -142,11 +167,15 @@ impl Generator {
             ];
         for idx in 0..self.n.len() {
             if self.n[idx] != 0 {
+                self.n[idx] = usize::MAX;
                 continue;
             }
             let start = self.piece.get_position().clone();
             let end = self.piece.get_position().clone() + offsets[idx];
-            self.n[idx] += 1;
+            self.n[idx] = usize::MAX;
+            if !self.is_in_bounds(end) {
+                return None;
+            }
             return Some(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
         }
         None
@@ -163,6 +192,10 @@ impl Generator {
         let offset = self.offsets.as_ref().unwrap()[idx] * self.n[idx] as i32;
         let start = self.piece.get_position().clone();
         let end = self.piece.get_position().clone() + offset;
+        if !self.is_in_bounds(end) {
+            self.n[idx] = usize::MAX;
+            return None;
+        }
         return Some(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
     }
 
@@ -180,6 +213,10 @@ impl Generator {
         let offset = self.offsets.as_ref().unwrap()[idx] * self.n[idx] as i32;
         let start = self.piece.get_position().clone();
         let end = self.piece.get_position().clone() + offset;
+        if !self.is_in_bounds(end) {
+            self.n[idx] = usize::MAX;
+            return None;
+        }
         self.buffer.push(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
         if !self.piece.has_moved() {
             let target_piece = self.state.get_piece_at(end);
@@ -202,6 +239,10 @@ impl Generator {
         let offset = self.offsets.as_ref().unwrap()[idx] * self.n[idx] as i32;
         let start = self.piece.get_position().clone();
         let end = self.piece.get_position().clone() + offset;
+        if !self.is_in_bounds(end) {
+            self.n[idx] = usize::MAX;
+            return None;
+        }
         return Some(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
     }
     
@@ -226,6 +267,10 @@ impl Generator {
             }
             let start = self.piece.get_position().clone();
             let end = self.piece.get_position().clone() + offsets[idx];
+            if !self.is_in_bounds(end) {
+                self.n[idx] = usize::MAX;
+                continue;
+            }
             self.n[idx] = usize::MAX;
             
             self.buffer.push(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
@@ -281,7 +326,7 @@ impl Generator {
         }
         
         // no double movement after move
-        if (self.piece.has_moved()) && (offset.y > 1) {
+        if (self.piece.has_moved()) && (offset.y.abs() > 1) {
             return false;
         }
         
@@ -437,7 +482,24 @@ impl Generator {
         // castling
         
         // enpassant
-        
+        if offset_move.en_passant {
+            if offset_move.start.x == offset_move.end.x {
+                return None;
+            }
+            if self.state.previous_move.is_none() {
+                return None;
+            }
+            let prev_move = self.state.previous_move.as_ref().unwrap().clone();
+            if prev_move.piece.get_piece_type() != PieceType::PAWN {
+                return None;
+            }
+            if (prev_move.start - prev_move.end).abs().y != 2 {
+                return None;
+            }
+            if (offset_move.piece.get_position() - prev_move.piece.get_position()).abs().x != 1 {
+                return None;
+            }
+        }
         
         Some(offset_move)
     }

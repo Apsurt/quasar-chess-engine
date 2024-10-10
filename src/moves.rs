@@ -43,8 +43,8 @@ impl fmt::Display for Move {
 }
 
 pub struct Generator {
-    pub n: Vec<usize>,
-    pub buffer: Vec<Move>,
+    n: Vec<usize>,
+    buffer: Vec<Move>,
     piece: Piece,
     state: State,
     offsets: Option<Vec<Vec2>>,
@@ -100,6 +100,13 @@ impl Generator {
             }
         }
         false
+    }
+    
+    pub fn reset(&mut self) {
+        self.buffer = vec![];
+        for idx in 0..self.n.len() {
+            self.n[idx] = 0;
+        }
     }
     
     fn next_pawn_offset(&mut self) -> Option<Move> {

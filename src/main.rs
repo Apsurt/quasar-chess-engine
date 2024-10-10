@@ -20,11 +20,14 @@ fn main() {
         let piece_move = gen.next_pseudo();
         match piece_move {
             None => {},
-            Some(_) => println!("{} {} {} {:?}",
+            Some(_) => println!("{} {} {} {:?} {} {:?} {}",
                 piece_move.as_ref().unwrap().piece,
                 piece_move.as_ref().unwrap().start,
                 piece_move.as_ref().unwrap().end,
                 piece_move.as_ref().unwrap().promotion,
+                piece_move.as_ref().unwrap().castling,
+                piece_move.as_ref().unwrap().castling_target,
+                piece_move.as_ref().unwrap().en_passant,
             )
         }
     }

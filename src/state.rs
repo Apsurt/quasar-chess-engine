@@ -76,6 +76,16 @@ impl State {
         None
     }
     
+    pub fn find(&self, piece_type: PieceType, piece_color: PieceColor) -> Vec<Piece> {
+        let mut result: Vec<Piece> = vec![];
+        for piece in self.pieces.clone() {
+            if (piece.get_piece_type() == piece_type) && (piece.get_color() == piece_color) {
+                result.push(piece.clone());
+            }
+        }
+        return result;
+    }
+    
     fn switch_to_move(&self) -> PieceColor {
         match self.to_move {
             PieceColor::BLACK => PieceColor::WHITE,

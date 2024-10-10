@@ -1,3 +1,5 @@
+use core::fmt;
+
 use glam::IVec2 as Vec2;
 use crate::pieces::{Piece, PieceColor, PieceType};
 use crate::state::State;
@@ -20,6 +22,26 @@ impl Move {
     }
 }
 
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut symbol = self.piece.get_symbol();
+        match self.piece.get_color() {
+            PieceColor::WHITE => {
+                symbol = symbol.to_ascii_uppercase()
+            },
+            PieceColor::BLACK => {}
+        };
+        write!(f,
+            "{}{},{}>{},{}",
+            symbol,
+            self.start.x,
+            self.start.y,
+            self.end.x,
+            self.end.y,
+        )
+    }
+}
+
 pub struct Generator {
     pub n: Vec<usize>,
     pub buffer: Vec<Move>,
@@ -36,7 +58,7 @@ impl Generator {
             PieceType::BISHOP => {4}
             PieceType::ROOK => {4}
             PieceType::QUEEN => {8}
-            PieceType::KING => {8}
+            PieceType::KING => {10} //8 directions and 2 castling directions
             _ => {0}
         };
         
@@ -145,6 +167,9 @@ impl Generator {
     }
 
     fn next_rook_offset(&mut self) -> Option<Move> {
+        if self.buffer.len() > 0 {
+            return self.buffer.pop()
+        }
         let min_n = self.n.iter().min().unwrap().clone();
         if min_n == usize::MAX {
             return None;
@@ -155,7 +180,15 @@ impl Generator {
         let offset = self.offsets.as_ref().unwrap()[idx] * self.n[idx] as i32;
         let start = self.piece.get_position().clone();
         let end = self.piece.get_position().clone() + offset;
-        return Some(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
+        self.buffer.push(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
+        if !self.piece.has_moved() {
+            let target_piece = self.state.get_piece_at(end);
+            if (!target_piece.is_none()) && (target_piece.unwrap().get_piece_type() == PieceType::KING) {
+                let target_piece = Some(target_piece.unwrap().clone());
+                self.buffer.push(Move::new(start, end, self.piece.clone(), None, None, true, target_piece, false));
+            }
+        }
+        self.buffer.pop()
     }
     
     fn next_queen_offset(&mut self) -> Option<Move> {
@@ -187,15 +220,35 @@ impl Generator {
                 Vec2::new(-1,  1),
                 Vec2::new(-1, -1),
             ];
-        for idx in 0..self.n.len() {
+        for idx in 0..offsets.len() {
             if self.n[idx] != 0 {
                 continue;
             }
             let start = self.piece.get_position().clone();
             let end = self.piece.get_position().clone() + offsets[idx];
-            self.n[idx] += 1;
+            self.n[idx] = usize::MAX;
             
             self.buffer.push(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
+        }
+        if !self.piece.has_moved() {
+            let rooks = self.state.find(PieceType::ROOK, self.piece.get_color());
+            for rook in rooks {
+                if !rook.has_moved() {
+                    let start = self.piece.get_position().clone();
+                    let end = rook.get_position().clone();
+                    let idx;
+                    if start.x - end.x < 0 {
+                        idx = 8;
+                    }
+                    else {
+                        idx = 9;
+                    }
+                    if self.n[idx] == 0 {
+                        self.buffer.push(Move::new(start, end, self.piece.clone(), None, None, true, Some(rook.clone()), false));
+                        self.n[idx] = usize::MAX;
+                    }
+                }
+            }
         }
         self.buffer.pop()
     }
@@ -313,7 +366,22 @@ impl Generator {
         true
     }
     
-    fn check_king_offset(&self) -> bool {
+    fn check_king_offset(&self, offset_move: &Move) -> bool {
+        if offset_move.castling {
+            let mut offset = offset_move.end - offset_move.start;
+            offset /= offset.abs().x;
+            let mut checked_point = offset_move.start + offset;
+            loop {
+                if checked_point == offset_move.end {
+                    break;
+                }
+                let found_piece = self.state.get_piece_at(checked_point);
+                if (!found_piece.is_none()) && (found_piece.unwrap().get_piece_type() != PieceType::ROOK) && (!found_piece.unwrap().has_moved()) {
+                    return false;
+                }
+                checked_point += offset;
+            }
+        }
         true
     }
     
@@ -346,7 +414,7 @@ impl Generator {
             PieceType::BISHOP => self.check_diagonal_offset(&offset_move),
             PieceType::ROOK => self.check_horizontal_offset(&offset_move),
             PieceType::QUEEN => self.check_diagonal_offset(&offset_move) || self.check_horizontal_offset(&offset_move),
-            PieceType::KING => self.check_king_offset(),
+            PieceType::KING => self.check_king_offset(&offset_move),
         };
         if !correct_offset {
             return None;
@@ -360,7 +428,9 @@ impl Generator {
         // is target a friendly piece?
         if !offset_move.target.is_none() {
             if offset_move.piece.get_color() == offset_move.target.clone().unwrap().get_color() {
-                return None;
+                if !offset_move.castling {
+                    return None;
+                }
             }
         }
         

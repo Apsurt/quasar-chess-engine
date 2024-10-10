@@ -1,7 +1,7 @@
 use glam::IVec2 as Vec2;
 use core::fmt;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PieceColor {
     BLACK,
     WHITE
@@ -16,7 +16,7 @@ impl PieceColor {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PieceType {
     NULL,
     PAWN,
@@ -95,45 +95,40 @@ pub fn symbol_to_name(symbol: char) -> String {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Piece {
-    id: u8,
+    color: PieceColor,
+    has_moved: bool,
+    is_alive: bool,
+    piece_type: PieceType,
     position: Vec2,
 }
 
-// Piece ID
-// from msb to lsb
-// 0 -> color (0 - black | 1 - white)
-// 1 -> has moved (bool)
-// 2 -> is alive (bool)
-// 3-7 -> piece type (0-31)
-
 impl Piece {
     pub fn new(piece_color: PieceColor, piece_type: PieceType, position: Vec2) -> Piece {
-        let id: u8 = ((piece_color as u8) << 7) + (1 << 5) + (piece_type as u8);
-        Piece {id, position}
+        Piece {color: piece_color, has_moved: false, is_alive: true, piece_type, position}
     }
     
     pub fn get_color(&self) -> PieceColor {
-        return PieceColor::from_bool(((self.id >> 7) & 1) != 0)
+        return self.color
     }
     
     pub fn has_moved(&self) -> bool {
-        return ((self.id >> 6) & 1) != 0
+        return self.has_moved
     }
     
     pub fn moved(&mut self) {
-        self.id |= 0b0100_0000;
+        self.has_moved = true
     }
     
     pub fn is_alive(&self) -> bool {
-        return ((self.id >> 5) & 1) != 0
+        return self.is_alive
     }
     
     pub fn capture(&mut self) {
-        self.id &= 0b1101_1111;
+        self.is_alive = false
     }
     
     pub fn get_piece_type(&self) -> PieceType {
-        return PieceType::from_u8((self.id << 3) >> 3)
+        return self.piece_type
     }
     
     pub fn get_name(&self) -> String {

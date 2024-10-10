@@ -29,7 +29,7 @@ impl State {
                 continue;
             }
             if symbol.is_digit(10) {
-                x += symbol as i32;
+                x += symbol as i32 - '0' as i32;
                 continue;
             }
             let piece_color;

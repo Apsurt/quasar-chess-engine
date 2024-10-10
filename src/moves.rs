@@ -9,14 +9,14 @@ pub struct Move {
     pub piece: Piece,
     pub target: Option<Piece>,
     pub castling: bool,
-    pub castling_target: bool,
+    pub castling_target: Option<Piece>,
     pub en_passant: bool,
     pub promotion: Option<PieceType>,
 }
 
 impl Move {
-    pub fn new(start: Vec2, end: Vec2, piece: Piece, target: Option<Piece>, promotion: Option<PieceType>) -> Move {
-        Move { start, end, piece, target, castling: false, castling_target: false, en_passant: false, promotion }
+    pub fn new(start: Vec2, end: Vec2, piece: Piece, target: Option<Piece>,  promotion: Option<PieceType>, castling: bool, castling_target: Option<Piece>, en_passant: bool) -> Move {
+        Move { start, end, piece, target, castling, castling_target, en_passant, promotion }
     }
 }
 
@@ -91,7 +91,11 @@ impl Generator {
                 let start = self.piece.get_position().clone();
                 let end = self.piece.get_position().clone() + (offsets[idx] * mul);
                 for promotion in promotions.iter() {
-                self.buffer.push(Move::new(start, end, self.piece.clone(), None, promotion.clone()));
+                    for en_passant in [true, false].iter() {
+                        self.buffer.push(
+                            Move::new(start, end, self.piece.clone(), None, promotion.clone(), false, None, en_passant.to_owned())
+                        );
+                    }
                 }
             }
             
@@ -121,7 +125,7 @@ impl Generator {
             let start = self.piece.get_position().clone();
             let end = self.piece.get_position().clone() + offsets[idx];
             self.n[idx] += 1;
-            return Some(Move::new(start, end, self.piece.clone(), None, None));
+            return Some(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
         }
         None
     }
@@ -137,7 +141,7 @@ impl Generator {
         let offset = self.offsets.as_ref().unwrap()[idx] * self.n[idx] as i32;
         let start = self.piece.get_position().clone();
         let end = self.piece.get_position().clone() + offset;
-        return Some(Move::new(start, end, self.piece.clone(), None, None));
+        return Some(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
     }
 
     fn next_rook_offset(&mut self) -> Option<Move> {
@@ -151,7 +155,7 @@ impl Generator {
         let offset = self.offsets.as_ref().unwrap()[idx] * self.n[idx] as i32;
         let start = self.piece.get_position().clone();
         let end = self.piece.get_position().clone() + offset;
-        return Some(Move::new(start, end, self.piece.clone(), None, None));
+        return Some(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
     }
     
     fn next_queen_offset(&mut self) -> Option<Move> {
@@ -165,10 +169,13 @@ impl Generator {
         let offset = self.offsets.as_ref().unwrap()[idx] * self.n[idx] as i32;
         let start = self.piece.get_position().clone();
         let end = self.piece.get_position().clone() + offset;
-        return Some(Move::new(start, end, self.piece.clone(), None, None));
+        return Some(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
     }
     
     fn next_king_offset(&mut self) -> Option<Move> {
+        if self.buffer.len() > 0 {
+            return self.buffer.pop()
+        }
         let offsets: Vec<Vec2> =
             vec![
                 Vec2::new( 1,  0),
@@ -187,9 +194,10 @@ impl Generator {
             let start = self.piece.get_position().clone();
             let end = self.piece.get_position().clone() + offsets[idx];
             self.n[idx] += 1;
-            return Some(Move::new(start, end, self.piece.clone(), None, None));
+            
+            self.buffer.push(Move::new(start, end, self.piece.clone(), None, None, false, None, false));
         }
-        None
+        self.buffer.pop()
     }
     
     fn next_offset(&mut self) -> Option<Move> {

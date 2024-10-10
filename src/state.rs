@@ -107,7 +107,7 @@ impl State {
     
 }
 
-impl fmt::Display for State{
+impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             let mut result = String::new();
             for y in (1..9).rev() {

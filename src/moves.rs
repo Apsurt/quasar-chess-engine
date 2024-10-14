@@ -20,6 +20,26 @@ impl Move {
     pub fn new(start: Vec2, end: Vec2, piece: Piece, target: Option<Piece>,  promotion: Option<PieceType>, castling: bool, castling_target: Option<Piece>, en_passant: bool) -> Move {
         Move { start, end, piece, target, castling, castling_target, en_passant, promotion }
     }
+    
+    pub fn to_standard_notation(&self) -> Option<String>{
+        if self.start.x < 1 {
+            return None;
+        }
+        if self.start.y < 1 {
+            return None;
+        }
+        if self.start.x > 8 {
+            return None;
+        }
+        if self.start.x > 8 {
+            return None;
+        }
+        
+        let start_file = ((self.start.x - 1) as u8 + 'a' as u8) as char;
+        let end_file = ((self.end.x - 1) as u8 + 'a' as u8) as char;
+        
+        return Some(format!("{}{}{}{}", start_file, self.start.y, end_file, self.end.y))
+    }
 }
 
 impl fmt::Display for Move {
